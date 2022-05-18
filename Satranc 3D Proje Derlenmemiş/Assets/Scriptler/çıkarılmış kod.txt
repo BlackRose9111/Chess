@@ -1,0 +1,145 @@
+ private void TekTasHareketSimuleEt(taslar Incelenen, ref List<Vector2Int> Hamleler, taslar HedefKral)
+    {
+        //Başlangıç değerlerini hafızada tut. Bunu yapmazının sebebi, simulasyondan sonra incelediğimiz taşın değerlerini eski haline getirmek. Sadece Şah durumlarına bakıyoruz
+        //Taşları kendi kendine hareket ettirmek değil!
+        int asılX = Incelenen.AnlıkX;
+        int asılY = Incelenen.AnlıkX;
+        List<Vector2Int> SilinecekHamleler = new List<Vector2Int>();
+
+        //Bütün hamleleri tek tek simule et ve şah durumu var mı kontrol et.
+
+        //Bu kod çok zor. Anlaşılması da anlatması da yazması da -Baran
+
+        for (int i = 0; i < Hamleler.Count; i++)
+        {
+
+            int SimX = Hamleler[i].x;
+            int SimY = Hamleler[i].y;
+
+            //Kral nerede? 
+            Vector2Int KralKonumBuSimulasyon = new Vector2Int(HedefKral.AnlıkX,HedefKral.AnlıkY);
+
+            //Şahı simüle ettik mi?
+            if (Incelenen.tip == Tastipi.Kral)
+            {
+                //Simule ettiğimiz taş Kralın kendisi ise aşağıdakini kullan.
+
+                KralKonumBuSimulasyon = new Vector2Int(SimX,SimY);
+
+            }
+            //Tahtadaki Tasların olduğu array'in değerlerini simulasyon yaparken değiştirmek istemiyorum, o yüzden kopyalamak lazım
+            //Umarım fazla RAM tüketmez. Referansız HARD kopya al. Bu yöntemi ilk defa kullanıyorum. -Baran
+            //Bir sürü simulasyon yöntemi denedim, elimizden bu geldi.
+
+            taslar[,] simulasyon = new taslar[KARE_X, KARE_Y];
+            //Krala saldıran taşların listesini tut. Bu engel harektleri için önemli.
+            List<taslar> SaldiranTaslar = new List<taslar>();
+            for (int x = 0; x < KARE_X; x++)
+            {
+                for (int y = 0; y < KARE_Y; y++)
+                {
+                    //İşlemi hızlandırmak için sadece dolu olan alanları kopyala.
+
+                    if (tahtadakiTaslar[x, y] != null)
+                    {
+                        simulasyon[x, y] = tahtadakiTaslar[x, y];
+                        //Bulduğumuz taş düşman mı? Kendi kendimizi mat edemeyiz.
+                        if(simulasyon[x, y].takim != Incelenen.takim)
+                        {
+                            //İncelenen taş düşman ise, listeye ekle. Bu liste olmadan doğru takımı simüle edemezdik.
+
+                            SaldiranTaslar.Add(simulasyon[x,y]);
+
+                        }
+
+
+
+                    }
+                            
+                }
+
+
+            }
+
+            //Simülasyon:
+
+            //Elimizde tuttuğumuz taşın bir önceki konumundan hayaletini siliyoruz çünkü taş hareket altında!
+            simulasyon[asılX, asılY] = null;
+            //İncelediğimiz taşı hareket ettiriyoruz. Gerçkten bir taş hareket ettirdiğimiz için, AsılX ve AsılY kaydettiğimiz değerlere simulasyon sonrası dönmeyi unutma.
+            Incelenen.AnlıkX = SimX;
+            Incelenen.AnlıkY = SimY;
+            //Görsel hareket fonksiyonlarını kullanmadığımız için, sadece taşın hayaleti hareket ediyor.
+            //SimX ve SimY for loop tarafından sürekli değiştiriliyor. Bu iki koordinat bu taşın yapabileceği hamlelerin koordinatları.
+            //Tek tek tüm hamlelerden hayaletini geçirerek, şah tehlike altında mı kontrol ediyoruz.
+
+            //taşı sanal tahta üzerindeki hamle noktasına  koy. 
+            simulasyon[SimX, SimY] = Incelenen;
+
+            //simüle ettiğimiz hamlede bir taşı yedik mi? Gittiğimiz yerde gerçekten bir taş yoksa null dönderir.
+
+            var yenmisTas = SaldiranTaslar.Find(c=>c.AnlıkX==SimX && c.AnlıkY==SimY);
+
+            if (yenmisTas != null)
+            {
+                //Bir yeme olayı varsa, array'den sil.
+
+                SaldiranTaslar.Remove(yenmisTas);
+
+
+            }
+            //Yukarıdakini yapmamızın sebebi, şaha tehlike olan taşları yiyebiliyorsak bu harekete izin vermek gerekli.
+
+            //Kral tehlike altında mı?
+
+            //Simüle edilmiş hareketleri hareket etmede normalde kullandığımız GidileBilecekKonum bul fonksiyonu ile buluyoruz
+            //Bu sefer, normalden farklı olarak gerçek tahta yerine simülasyon için aldığım kopya tahtayı referans alıyoruz.
+            List<Vector2Int> simHareket = new List<Vector2Int>();
+
+            for (int a = 0; a < SaldiranTaslar.Count; a++)
+            {
+                var tasHareket = SaldiranTaslar[a].GidilebilecekKonumlarıBul(ref simulasyon,KARE_X,KARE_Y);
+
+                for (int b = 0; b < tasHareket.Count; b++)
+                {
+                    simHareket.Add(tasHareket[b]);
+                }
+
+            }
+            //Saldıran taşların yapabildikleri tüm hareketleri öğrendik. Bu hareketler arasında kralı yiyebilecek bir hamle var mı?
+            //Bunun için doğru hareket kontrolu yapan fonksiyona, kralın olduğu yere yapılan hamlelerin doğrulanmasını istiyoruz.
+            if (DogruHaraketVar(ref simHareket,KralKonumBuSimulasyon))
+            {
+                //Eğer bu harekeler arasında kralın konumu var ise, listeye ekle.
+
+                SilinecekHamleler.Add(Hamleler[i]);
+                //Şah tehlikede ise bu hamle tehlikelidir!
+            }
+
+            //Hayaletleri eski konumlarına geri getir yoksa senkron bozulur!
+            Incelenen.AnlıkX = asılX;
+            Incelenen.AnlıkX = asılY;
+
+
+
+
+        }
+        
+
+
+        // Riskli hamleleri yapılabilinen hamlelerden çıkar.
+
+        for (int i = 0; i < SilinecekHamleler.Count; i++)
+        {
+
+            //Bu yüzden hamleleri referans aldık!
+            Hamleler.Remove(SilinecekHamleler[i]);
+
+        }
+
+
+
+
+
+
+
+    }

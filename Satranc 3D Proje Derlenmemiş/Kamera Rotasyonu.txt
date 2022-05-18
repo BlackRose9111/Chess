@@ -1,0 +1,16 @@
+Kamera Beyaz Konumları:
+
+Pos: x:0 y:52.2 z:-50
+
+Rotation: 50
+Light:
+
+pos: 10.7 23.6 -13.7
+
+rotation: 47.431 -54.00 -18.156
+
+Black Camera:
+
+Pos: x:0 y:52.2 z: 50
+
+Rotation: x:130 y:0 z:180
